@@ -80,6 +80,19 @@ model TaxRate {
   createdAt DateTime @default(now())
 }
 
+model Subscription {
+  id                 Int       @id @default(autoincrement())
+  customerId         Int
+  planId             Int
+  state              String    @default("active") // active | paused | cancelled
+  currentPeriodStart DateTime  @default(now())
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([state])
+  @@index([customerId])
+}
+
 model Invoice {
   id         Int       @id @default(autoincrement())
   number     String    @unique
@@ -87,11 +100,14 @@ model Invoice {
   state      String    @default("draft") // draft | confirmed | paid | void
   grandTotal Float     @default(0)
   amountPaid Float     @default(0)
+  dueDate    DateTime?
   createdAt  DateTime  @default(now())
   payments   Payment[]
 
   @@index([customerId])
   @@index([state])
+  @@index([dueDate])
+  @@index([state, dueDate])
 }
 
 model Payment {
