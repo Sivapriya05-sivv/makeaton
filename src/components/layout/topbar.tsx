@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 interface TopbarProps {
   user: {
-    name: string;
+    name?: string;
     email: string;
     role: string;
   };
@@ -72,7 +72,9 @@ export function Topbar({ user }: TopbarProps) {
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-800">{user.name}</span>
+          <span className="text-sm font-medium text-slate-800">
+            {user.name || user.email.split("@")[0]}
+          </span>
           <span
             className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${roleBadgeStyle}`}
           >
@@ -96,4 +98,3 @@ export function Topbar({ user }: TopbarProps) {
 }
 
 export default Topbar;
-
