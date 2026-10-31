@@ -107,3 +107,34 @@ model Payment {
 
   @@index([invoiceId])
 }
+
+model Discount {
+  id          Int                  @id @default(autoincrement())
+  code        String               @unique
+  type        String               // fixed|percent
+  value       Float
+  minPurchase Float                @default(0)
+  minQuantity Int                  @default(0)
+  startDate   DateTime
+  endDate     DateTime?
+  maxUses     Int?
+  usedCount   Int                  @default(0)
+  scope       String               // product|subscription
+  productId   Int?
+  active      Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  redemptions DiscountRedemption[]
+
+  @@index([active, startDate, endDate])
+}
+
+model DiscountRedemption {
+  id         Int      @id @default(autoincrement())
+  discountId Int
+  invoiceId  Int
+  amount     Float
+  at         DateTime @default(now())
+  discount   Discount @relation(fields: [discountId], references: [id])
+
+  @@index([discountId])
+}
