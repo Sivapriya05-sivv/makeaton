@@ -148,7 +148,7 @@ async function main() {
         nextBillingDate: yesterday,
         state: "active",
         paused: false,
-        paymentTerms: "30",
+        paymentTerms: 30,
       });
     }
 
@@ -184,7 +184,8 @@ async function main() {
   await (prisma as any).discount.create({
     data: {
       code: "VOL10",
-      percentage: 10,
+      type: "percent",
+      value: 10,
       scope: "subscription",
       minPurchase: 2000,
       startDate: discountStart,
