@@ -209,3 +209,4 @@ export default async function PortalInvoiceDetailPage({
     </div>
   );
 }
+

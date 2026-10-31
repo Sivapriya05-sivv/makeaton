@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id           Int                  @id @default(autoincrement())
-  email        String               @unique
-  passwordHash String
-  name         String
-  role         String               @default("customer") // admin | staff | customer
-  createdAt    DateTime             @default(now())
-  resetTokens  PasswordResetToken[]
+  id            Int                  @id @default(autoincrement())
+  email         String               @unique
+  passwordHash  String
+  name          String
+  role          String               @default("customer") // admin | staff | customer
+  createdAt     DateTime             @default(now())
+  resetTokens   PasswordResetToken[]
+  subscriptions Subscription[]
 
   @@index([role])
 }
@@ -55,19 +56,20 @@ model ProductVariant {
 }
 
 model Plan {
-  id              Int       @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   name            String
   productId       Int
   variantId       Int?
   price           Float
-  billingInterval String    // daily|weekly|monthly|yearly
-  minQuantity     Int       @default(1)
+  billingInterval String         // daily|weekly|monthly|yearly
+  minQuantity     Int            @default(1)
   availableFrom   DateTime
   availableTo     DateTime?
-  closePolicy     String    @default("auto") // auto|early|pause|renew
-  active          Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  product         Product   @relation(fields: [productId], references: [id])
+  closePolicy     String         @default("auto") // auto|early|pause|renew
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  product         Product        @relation(fields: [productId], references: [id])
+  subscriptions   Subscription[]
 
   @@index([active])
 }
@@ -81,30 +83,54 @@ model TaxRate {
 }
 
 model Subscription {
-  id                 Int       @id @default(autoincrement())
-  customerId         Int
-  planId             Int
-  state              String    @default("active") // active | paused | cancelled
-  currentPeriodStart DateTime  @default(now())
-  currentPeriodEnd   DateTime?
-  createdAt          DateTime  @default(now())
+  id              Int                @id @default(autoincrement())
+  number          String             @unique
+  customerId      Int
+  planId          Int
+  startDate       DateTime
+  expiryDate      DateTime?
+  paymentTerms    Int                @default(30)
+  state           String             @default("draft") // draft|quotation|confirmed|active|closed
+  paused          Boolean            @default(false)
+  nextBillingDate DateTime?
+  createdAt       DateTime           @default(now())
+  lines           SubscriptionLine[]
+  invoices        Invoice[]
+  customer        User               @relation(fields: [customerId], references: [id])
+  plan            Plan               @relation(fields: [planId], references: [id])
 
-  @@index([state])
   @@index([customerId])
+  @@index([state, nextBillingDate])
+}
+
+model SubscriptionLine {
+  id             Int          @id @default(autoincrement())
+  subscriptionId Int
+  productId      Int
+  variantId      Int?
+  qty            Int          @default(1)
+  unitPrice      Float
+  taxId          Int?
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
 }
 
 model Invoice {
-  id         Int       @id @default(autoincrement())
-  number     String    @unique
-  customerId Int?
-  state      String    @default("draft") // draft | confirmed | paid | void
-  grandTotal Float     @default(0)
-  amountPaid Float     @default(0)
-  dueDate    DateTime?
-  createdAt  DateTime  @default(now())
-  payments   Payment[]
+  id             Int           @id @default(autoincrement())
+  number         String        @unique
+  customerId     Int?
+  subscriptionId Int?
+  state          String        @default("draft") // draft | confirmed | paid | void
+  grandTotal     Float         @default(0)
+  amountPaid     Float         @default(0)
+  dueDate        DateTime?
+  createdAt      DateTime      @default(now())
+  payments       Payment[]
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
 
   @@index([customerId])
+  @@index([subscriptionId])
   @@index([state])
   @@index([dueDate])
   @@index([state, dueDate])
