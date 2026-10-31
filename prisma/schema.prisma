@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int                  @id @default(autoincrement())
+  email        String               @unique
+  passwordHash String
+  name         String
+  role         String               @default("customer") // admin | staff | customer
+  createdAt    DateTime             @default(now())
+  resetTokens  PasswordResetToken[]
+
+  @@index([role])
+}
+
+model PasswordResetToken {
+  token     String   @id
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Product {
+  id         Int              @id @default(autoincrement())
+  name       String
+  type       String
+  salesPrice Float
+  costPrice  Float            @default(0)
+  notes      String           @default("")
+  active     Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  variants   ProductVariant[]
+  plans      Plan[]
+
+  @@index([active])
+}
+
+model ProductVariant {
+  id         Int     @id @default(autoincrement())
+  productId  Int
+  name       String
+  priceDelta Float   @default(0)
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Plan {
+  id              Int       @id @default(autoincrement())
+  name            String
+  productId       Int
+  variantId       Int?
+  price           Float
+  billingInterval String    // daily|weekly|monthly|yearly
+  minQuantity     Int       @default(1)
+  availableFrom   DateTime
+  availableTo     DateTime?
+  closePolicy     String    @default("auto") // auto|early|pause|renew
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  product         Product   @relation(fields: [productId], references: [id])
+
+  @@index([active])
+}
+
+model TaxRate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  rate      Float    // 0.18 = 18%
+  appliesTo String   @default("all") // product type or 'all'
+  createdAt DateTime @default(now())
+}
