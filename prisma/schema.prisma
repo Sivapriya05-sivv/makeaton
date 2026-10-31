@@ -79,3 +79,31 @@ model TaxRate {
   appliesTo String   @default("all") // product type or 'all'
   createdAt DateTime @default(now())
 }
+
+model Invoice {
+  id         Int       @id @default(autoincrement())
+  number     String    @unique
+  customerId Int?
+  state      String    @default("draft") // draft | confirmed | paid | void
+  grandTotal Float     @default(0)
+  amountPaid Float     @default(0)
+  createdAt  DateTime  @default(now())
+  payments   Payment[]
+
+  @@index([customerId])
+  @@index([state])
+}
+
+model Payment {
+  id         Int      @id @default(autoincrement())
+  invoiceId  Int
+  method     String
+  amount     Float
+  paidOn     DateTime
+  note       String   @default("")
+  recordedBy Int?
+  createdAt  DateTime @default(now())
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}

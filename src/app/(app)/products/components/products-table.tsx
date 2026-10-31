@@ -499,3 +499,4 @@ export function ProductsTable({ initialProducts, isAdmin }: ProductsTableProps) 
 }
 
 export default ProductsTable;
+
