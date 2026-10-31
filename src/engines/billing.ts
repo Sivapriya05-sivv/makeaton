@@ -123,3 +123,4 @@ export async function generateInvoice(params: GenerateInvoiceParams) {
 
   return result;
 }
+
