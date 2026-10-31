@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { PASSWORD_RULE, hashPassword, signToken } from "@/lib/auth";
+import { hashPassword, signToken, PASSWORD_RULE } from "@/lib/auth";
 
 const signupSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   email: z.string().email(),
   password: z
     .string()
+    .min(9, "Password must be at least 9 characters")
     .regex(
       PASSWORD_RULE,
-      "Password must be >8 chars with upper, lower, special"
+      "Password must contain at least one lowercase, one uppercase, and one symbol"
     ),
-  name: z.string().min(1).max(100),
 });
 
 export async function POST(req: Request) {
-  // TODO: Add rate limiting in production (e.g., Upstash / Redis) to protect signup endpoint against abuse.
   try {
     const body = await req.json();
     const validation = signupSchema.safeParse(body);
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email, password, name } = validation.data;
+    const { name, email, password } = validation.data;
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -35,14 +35,13 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email already registered" },
+        { error: "A user with this email already exists" },
         { status: 409 }
       );
     }
 
     const passwordHash = await hashPassword(password);
 
-    // Role is HARDCODED to 'customer'. Signup can never create admin or staff.
     const user = await prisma.user.create({
       data: {
         email,
@@ -76,9 +75,13 @@ export async function POST(req: Request) {
       { status: 201 }
     );
 
+    const isHttps =
+      req.headers.get("x-forwarded-proto") === "https" ||
+      req.url.startsWith("https://");
+
     response.cookies.set("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 43200,
@@ -92,4 +95,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

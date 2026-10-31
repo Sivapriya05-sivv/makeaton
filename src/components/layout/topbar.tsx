@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,10 +23,12 @@ const PAGE_TITLES: Record<string, string> = {
   "/invoices": "Invoices",
   "/payments": "Payments",
   "/staff": "Staff",
+  "/guardian": "Revenue Guardian",
+  "/customers": "Customers",
+  "/audit": "Audit Logs",
 };
 
 export function Topbar({ user }: TopbarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -41,17 +43,12 @@ export function Topbar({ user }: TopbarProps) {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      const res = await fetch("/api/auth/logout", {
+      await fetch("/api/auth/logout", {
         method: "POST",
       });
-
-      if (res.ok) {
-        router.push("/login");
-        router.refresh();
-      }
+      window.location.href = "/login";
     } catch {
-      router.push("/login");
-      router.refresh();
+      window.location.href = "/login";
     } finally {
       setLoggingOut(false);
     }
@@ -60,20 +57,18 @@ export function Topbar({ user }: TopbarProps) {
   const roleBadgeStyle =
     user.role === "admin"
       ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+      : "bg-slate-100 text-slate-700 border-slate-200";
 
   return (
-    <header className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
-      <div>
-        <h1 className="text-base font-semibold text-slate-900 tracking-tight">
-          {getPageTitle(pathname)}
-        </h1>
-      </div>
+    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10">
+      <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+        {getPageTitle(pathname)}
+      </h1>
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-800">
-            {user.name || user.email.split("@")[0]}
+          <span className="text-sm font-medium text-slate-700">
+            {user.name || user.email?.split("@")[0]}
           </span>
           <span
             className={`px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${roleBadgeStyle}`}

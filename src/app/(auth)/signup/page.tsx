@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,6 @@ import { Label } from "@/components/ui/label";
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{9,}$/;
 
 export default function SignupPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,8 +33,9 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push("/dashboard");
-        router.refresh();
+        const destination =
+          data.user?.role === "customer" ? "/portal/subscriptions" : "/dashboard";
+        window.location.href = destination;
       } else {
         setError(data.error || "Failed to create account");
       }
@@ -49,7 +48,7 @@ export default function SignupPage() {
 
   return (
     <div className="px-4">
-      <div className="mx-auto mt-24 max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="mx-auto mt-20 max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="mb-6 text-center">
           <Link
             href="/"
@@ -58,7 +57,7 @@ export default function SignupPage() {
             Brightloop
           </Link>
           <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">
-            Create your account
+            Create an account
           </h1>
         </div>
 
@@ -114,17 +113,37 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="border-slate-200 focus-visible:ring-indigo-600"
             />
-            <div
-              className={`flex items-center gap-1.5 text-xs ${
-                isPasswordValid
-                  ? "font-medium text-emerald-600"
-                  : "text-slate-500"
-              }`}
-            >
-              {isPasswordValid && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
-              <span>
-                At least 9 characters, one uppercase, one lowercase, one special character
-              </span>
+            <div className="mt-1 space-y-1 text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <Check
+                  className={`h-3.5 w-3.5 ${
+                    password.length >= 9
+                      ? "text-emerald-600"
+                      : "text-slate-300"
+                  }`}
+                />
+                <span>At least 9 characters</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Check
+                  className={`h-3.5 w-3.5 ${
+                    /[a-z]/.test(password) && /[A-Z]/.test(password)
+                      ? "text-emerald-600"
+                      : "text-slate-300"
+                  }`}
+                />
+                <span>Uppercase and lowercase letters</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Check
+                  className={`h-3.5 w-3.5 ${
+                    /[^A-Za-z0-9]/.test(password)
+                      ? "text-emerald-600"
+                      : "text-slate-300"
+                  }`}
+                />
+                <span>At least one symbol</span>
+              </div>
             </div>
           </div>
 
@@ -136,10 +155,10 @@ export default function SignupPage() {
 
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isPasswordValid}
             className="w-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Creating account..." : "Sign up"}
           </Button>
         </form>
 
@@ -156,4 +175,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

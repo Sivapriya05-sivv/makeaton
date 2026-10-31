@@ -4,85 +4,126 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  ShieldAlert,
   Package,
   Layers,
   Percent,
   Tag,
+  Users,
   Repeat,
   Receipt,
   Wallet,
-  Users,
+  UserCog,
+  FileText,
 } from "lucide-react";
 
-interface SidebarProps {
-  role: "admin" | "staff" | string;
+export interface SidebarProps {
+  role?: "admin" | "staff" | string;
 }
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Products", href: "/products", icon: Package },
-  { label: "Plans", href: "/plans", icon: Layers },
-  { label: "Taxes", href: "/taxes", icon: Percent },
-  { label: "Discounts", href: "/discounts", icon: Tag, adminOnly: true },
-  { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
-  { label: "Invoices", href: "/invoices", icon: Receipt },
-  { label: "Payments", href: "/payments", icon: Wallet },
-  { label: "Staff", href: "/staff", icon: Users, adminOnly: true },
+interface NavGroup {
+  group: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    group: "OVERVIEW",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Revenue Guardian", href: "/guardian", icon: ShieldAlert },
+    ],
+  },
+  {
+    group: "CATALOG",
+    items: [
+      { label: "Products", href: "/products", icon: Package },
+      { label: "Plans & Pricing", href: "/plans", icon: Layers },
+      { label: "Tax Configuration", href: "/taxes", icon: Percent },
+      { label: "Discount Rules", href: "/discounts", icon: Tag },
+    ],
+  },
+  {
+    group: "SALES & CUSTOMERS",
+    items: [
+      { label: "Customers", href: "/customers", icon: Users },
+      { label: "Subscriptions", href: "/subscriptions", icon: Repeat },
+    ],
+  },
+  {
+    group: "BILLING & FINANCE",
+    items: [
+      { label: "Invoices", href: "/invoices", icon: Receipt },
+      { label: "Payments", href: "/payments", icon: Wallet },
+    ],
+  },
+  {
+    group: "ADMINISTRATION",
+    items: [
+      { label: "Staff Management", href: "/staff", icon: UserCog },
+      { label: "Audit Logs", href: "/audit", icon: FileText },
+    ],
+  },
 ];
 
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
 
-  const filteredItems = NAV_ITEMS.filter((item) => {
-    if (item.adminOnly && role !== "admin") {
-      return false;
-    }
-    return true;
-  });
-
   return (
-    <aside className="w-64 shrink-0 bg-slate-900 text-slate-100 p-4 h-screen sticky top-0 flex flex-col">
-      <div className="px-3 py-2 mb-6">
+    <aside className="w-64 shrink-0 bg-slate-900 text-slate-100 p-4 min-h-screen sticky top-0 flex flex-col border-r border-slate-800">
+      <div className="px-3 py-2 mb-4 flex items-center justify-between">
         <Link
           href="/dashboard"
-          className="text-xl font-semibold text-indigo-400 tracking-tight"
+          className="text-xl font-bold text-white tracking-tight flex items-center gap-2"
         >
-          Brightloop
+          <span className="h-6 w-2 bg-indigo-500 rounded-sm"></span>
+          <span>Brightloop</span>
         </Link>
+        {role && (
+          <span className="text-[10px] uppercase font-semibold tracking-wider bg-slate-800 text-indigo-400 px-2 py-0.5 rounded border border-slate-700">
+            {role}
+          </span>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-1">
-        {filteredItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+      <nav className="flex-1 space-y-6 overflow-y-auto pr-1">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.group} className="space-y-1">
+            <h3 className="px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              {group.group}
+            </h3>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex gap-3 items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-indigo-600 text-white"
-                  : "text-slate-300 hover:bg-slate-800"
-              }`}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </aside>
   );
 }
 
 export default Sidebar;
-

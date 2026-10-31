@@ -73,14 +73,10 @@ export function PortalTopbar({
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) {
-        router.push("/login");
-        router.refresh();
-      }
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "/login";
     } catch {
-      router.push("/login");
-      router.refresh();
+      window.location.href = "/login";
     } finally {
       setLoggingOut(false);
     }

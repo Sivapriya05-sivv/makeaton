@@ -66,9 +66,13 @@ export async function POST(req: Request) {
       { status: 200 }
     );
 
+    const isHttps =
+      req.headers.get("x-forwarded-proto") === "https" ||
+      req.url.startsWith("https://");
+
     response.cookies.set("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 43200,
@@ -82,4 +86,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
