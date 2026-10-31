@@ -15,6 +15,8 @@ model User {
   role         String               @default("customer") // admin | staff | customer
   createdAt    DateTime             @default(now())
   resetTokens  PasswordResetToken[]
+  subscriptions Subscription[]
+  invoices     Invoice[]
 
   @@index([role])
 }
@@ -30,16 +32,17 @@ model PasswordResetToken {
 }
 
 model Product {
-  id         Int              @id @default(autoincrement())
-  name       String
-  type       String
-  salesPrice Float
-  costPrice  Float            @default(0)
-  notes      String           @default("")
-  active     Boolean          @default(true)
-  createdAt  DateTime         @default(now())
-  variants   ProductVariant[]
-  plans      Plan[]
+  id                Int                @id @default(autoincrement())
+  name              String
+  type              String
+  salesPrice        Float
+  costPrice         Float              @default(0)
+  notes             String             @default("")
+  active            Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  variants          ProductVariant[]
+  plans             Plan[]
+  subscriptionLines SubscriptionLine[]
 
   @@index([active])
 }
@@ -55,19 +58,20 @@ model ProductVariant {
 }
 
 model Plan {
-  id              Int       @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   name            String
   productId       Int
   variantId       Int?
   price           Float
-  billingInterval String    // daily|weekly|monthly|yearly
-  minQuantity     Int       @default(1)
+  billingInterval String         // daily|weekly|monthly|yearly
+  minQuantity     Int            @default(1)
   availableFrom   DateTime
   availableTo     DateTime?
-  closePolicy     String    @default("auto") // auto|early|pause|renew
-  active          Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  product         Product   @relation(fields: [productId], references: [id])
+  closePolicy     String         @default("auto") // auto|early|pause|renew
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  product         Product        @relation(fields: [productId], references: [id])
+  subscriptions   Subscription[]
 
   @@index([active])
 }
@@ -80,18 +84,81 @@ model TaxRate {
   createdAt DateTime @default(now())
 }
 
-model Invoice {
-  id         Int       @id @default(autoincrement())
-  number     String    @unique
-  customerId Int?
-  state      String    @default("draft") // draft | confirmed | paid | void
-  grandTotal Float     @default(0)
-  amountPaid Float     @default(0)
-  createdAt  DateTime  @default(now())
-  payments   Payment[]
+model Subscription {
+  id              Int                @id @default(autoincrement())
+  number          String             @unique
+  customerId      Int
+  planId          Int
+  startDate       DateTime
+  expiryDate      DateTime?
+  paymentTerms    String?
+  nextBillingDate DateTime?
+  state           String             @default("draft")
+  paused          Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  plan            Plan               @relation(fields: [planId], references: [id])
+  customer        User               @relation(fields: [customerId], references: [id])
+  lines           SubscriptionLine[]
+  invoices        Invoice[]
 
   @@index([customerId])
   @@index([state])
+}
+
+model SubscriptionLine {
+  id             Int          @id @default(autoincrement())
+  subscriptionId Int
+  productId      Int
+  variantId      Int?
+  qty            Int
+  unitPrice      Float
+  taxId          Int?
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id])
+
+  @@index([subscriptionId])
+}
+
+model Invoice {
+  id                 Int           @id @default(autoincrement())
+  number             String        @unique
+  subscriptionId     Int
+  customerId         Int
+  issueDate          DateTime
+  dueDate            DateTime
+  state              String        @default("draft")  // draft|confirmed|paid|cancelled
+  subtotal           Float         @default(0)
+  taxTotal           Float         @default(0)
+  discountTotal      Float         @default(0)
+  grandTotal         Float         @default(0)
+  amountPaid         Float         @default(0)
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  createdAt          DateTime      @default(now())
+  lines              InvoiceLine[]
+  payments           Payment[]
+  subscription       Subscription  @relation(fields: [subscriptionId], references: [id])
+  customer           User          @relation(fields: [customerId], references: [id])
+
+  @@unique([subscriptionId, billingPeriodStart])   // ⭐ IDEMPOTENCY
+  @@index([customerId])
+  @@index([state, dueDate])
+}
+
+model InvoiceLine {
+  id             Int      @id @default(autoincrement())
+  invoiceId      Int
+  productId      Int?
+  description    String
+  qty            Int
+  unitPrice      Float
+  taxId          Int?
+  taxRate        Float    @default(0)
+  discountAmount Float    @default(0)
+  amount         Float
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }
 
 model Payment {
@@ -106,4 +173,33 @@ model Payment {
   invoice    Invoice  @relation(fields: [invoiceId], references: [id])
 
   @@index([invoiceId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  entity    String
+  entityId  Int
+  fromState String?
+  toState   String
+  at        DateTime @default(now())
+
+  @@index([entity, entityId])
+}
+
+
+model Discount {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  percentage  Float    @default(10)
+  scope       String   @default("subscription")
+  minPurchase Float    @default(2000)
+  startDate   DateTime
+  endDate     DateTime
+  maxUses     Int      @default(100)
+  usedCount   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([code])
 }
